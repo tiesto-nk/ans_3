@@ -1,0 +1,89 @@
+---
+- hosts: app
+  tasks: 
+
+    - name: Install NGINX
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+
+
+    - name: Removing default configuration
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+
+    - name: Make test in /var/.. directory
+      file:
+        path: /var/www/dev0.r89179174234.devops.rebrain.srwx.net/{{ item }}/html
+        state: directory
+      with_items:
+          - test1
+          - test2
+
+
+
+
+    - name: Adding index.html for test1
+      template:
+        src: index.html.j2
+        dest: /var/www/dev0.r89179174234.devops.rebrain.srwx.net/{{ item }}/html/index.html
+      with_items:
+          - test1
+          - test2
+
+
+
+
+    - name: Adding nginx configuration
+      template:
+        src: "{{ item }}.dev0.r89179174234.devops.rebrain.srwx.net.j2"
+        dest: /etc/nginx/sites-available/
+        owner: root
+        group: root
+        mode: 0644
+      with_items:
+          - test1
+          - test2
+      notify: reload nginx
+
+
+
+
+    - name: Create symlink
+      file:
+        src: "/etc/nginx/sites-available/{{ item }}.dev0.r89179174234.devops.rebrain.srwx.net.j2"
+        dest: "/etc/nginx/sites-enabled/{{ item }}.dev0.r89179174234.devops.rebrain.srwx.net"
+        state: link
+        force: yes
+      with_items:
+          - test1
+          - test2
+      notify: reload nginx
+
+
+
+    - name: Update nginx.conf file
+      template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+        backup: yes
+      notify: reload nginx
+
+
+
+    - name: Update hosts file
+      template:
+        src: hosts.j2
+        dest: /etc/hosts
+        backup: yes
+      notify: reload nginx
+  handlers:
+    - name: reload nginx
+      service:
+        name: nginx
+        state: restarted
+
